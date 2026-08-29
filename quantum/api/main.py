@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from engine.algorithms import superposition, bell_state, ghz_state
-from engine.circuit_builder import build_circuit
 from engine.simulator import QuantumSimulator
+from engine.circuit_builder import build_circuit
 
 
 app = FastAPI(
@@ -22,9 +20,9 @@ class Gate(BaseModel):
     qubit: int | None = None
     control: int | None = None
     target: int | None = None
+    control1: int | None = None
+    control2: int | None = None
     angle: float | None = None
-    qubit1: int | None = None
-    qubit2: int | None = None
 
 
 class SimulationRequest(BaseModel):
