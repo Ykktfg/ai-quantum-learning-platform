@@ -10,6 +10,7 @@ from engine.state_analyzer import analyze_statevector
 from engine.measurement_analyzer import analyze_measurements
 from engine.circuit_explainer import explain_circuit
 from engine.ai_tutor import generate_tutor_response
+from engine.circuit_debugger import debug_circuit
 
 
 app = FastAPI(
@@ -418,6 +419,134 @@ def explain(request: ExplainRequest):
                     "most_likely_probability"
                 ],
                 "distribution": measurement_analysis["distribution"],
+            },
+        }
+
+    except (KeyError, ValueError, TypeError) as exc:
+        return {
+            "error": str(exc)
+        }
+# --------------------------------
+# AI CIRCUIT DEBUGGER
+# --------------------------------
+
+@app.post("/debug")
+def debug(request: SimulationRequest):
+
+    try:
+
+        # --------------------------------
+        # BUILD CIRCUIT
+        # --------------------------------
+
+        if request.algorithm:
+
+            algorithms = {
+                "superposition": superposition,
+                "bell": bell_state,
+                "ghz": ghz_state,
+            }
+
+            algorithm_name = request.algorithm.lower()
+
+            if algorithm_name not in algorithms:
+                return {
+                    "error": "Unknown algorithm",
+                    "available_algorithms": list(algorithms.keys()),
+                }
+
+            circuit = algorithms[algorithm_name]()
+
+        else:
+
+            if request.qubits is None:
+                return {
+                    "error": "qubits is required for a custom circuit"
+                }
+
+            if request.gates is None:
+                return {
+                    "error": "gates is required for a custom circuit"
+                }
+
+            gates = [
+                gate.model_dump(exclude_none=True)
+                for gate in request.gates
+            ]
+
+            circuit = build_circuit(
+                num_qubits=request.qubits,
+                gates=gates,
+            )
+
+        # --------------------------------
+        # SIMULATION
+        # --------------------------------
+
+        result = simulator.run(
+            circuit,
+            shots=request.shots,
+        )
+
+        # --------------------------------
+        # ANALYSIS
+        # --------------------------------
+
+        circuit_analysis = analyze_circuit(circuit)
+
+        statevector = simulator.statevector(circuit)
+
+        state_analysis = analyze_statevector(
+            statevector,
+            circuit.num_qubits,
+        )
+
+        measurement_analysis = analyze_measurements(
+            result["counts"],
+            result["shots"],
+        )
+
+        # --------------------------------
+        # DEBUGGER
+        # --------------------------------
+
+        debugger_result = debug_circuit(
+            circuit_analysis=circuit_analysis,
+            state_analysis=state_analysis,
+            measurement_analysis=measurement_analysis,
+        )
+
+        return {
+            "status": debugger_result["status"],
+            "summary": debugger_result["summary"],
+
+            "issues": debugger_result["issues"],
+
+            "suggestions": debugger_result["suggestions"],
+
+            "circuit": {
+                "num_qubits": circuit_analysis["num_qubits"],
+                "depth": circuit_analysis["depth"],
+                "total_gates": circuit_analysis["total_gates"],
+                "gate_counts": circuit_analysis["gate_counts"],
+            },
+
+            "state": {
+                "state_expression": state_analysis[
+                    "state_expression"
+                ],
+            },
+
+            "measurement": {
+                "distribution": measurement_analysis[
+                    "distribution"
+                ],
+                "most_likely_state": measurement_analysis[
+                    "most_likely_state"
+                ],
+                "most_likely_probability": measurement_analysis[
+                    "most_likely_probability"
+                ],
             },
         }
 
