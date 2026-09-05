@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
-
+from engine.gate_explanations import get_gate_info, get_all_gate_info
 from engine.algorithms import superposition, bell_state, ghz_state
 from engine.simulator import QuantumSimulator
 from engine.circuit_builder import build_circuit
@@ -47,6 +47,23 @@ def home():
 def health():
     return {"status": "healthy"}
 
+@app.get("/gates")
+def get_gates():
+    return {
+        "gates": get_all_gate_info()
+    }
+
+@app.get("/gates/{gate_name}")
+def get_gate(gate_name: str):
+    try:
+        return {
+            "gate": gate_name.upper(),
+            "info": get_gate_info(gate_name),
+        }
+    except ValueError as exc:
+        return {
+            "error": str(exc)
+        }
 
 @app.post("/simulate")
 def simulate(request: SimulationRequest):
