@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from engine.gate_explanations import get_gate_info, get_all_gate_info
 from engine.algorithms import superposition, bell_state, ghz_state
 from engine.simulator import QuantumSimulator
 from engine.circuit_builder import build_circuit
 from engine.circuit_analyzer import analyze_circuit
 from engine.state_analyzer import analyze_statevector
 from engine.measurement_analyzer import analyze_measurements
+from engine.circuit_explainer import explain_circuit
+from engine.ai_tutor import generate_tutor_response
+from engine.circuit_debugger import debug_circuit
 
 
 app = FastAPI(
@@ -14,6 +18,7 @@ app = FastAPI(
     description="Quantum circuit simulation and educational analysis API",
     version="1.0.0",
 )
+
 
 simulator = QuantumSimulator()
 
@@ -35,6 +40,11 @@ class SimulationRequest(BaseModel):
     shots: int = Field(default=1000, ge=1)
 
 
+class ExplainRequest(BaseModel):
+    question: str
+    circuit: SimulationRequest
+
+
 @app.get("/")
 def home():
     return {
@@ -45,8 +55,38 @@ def home():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy"
+    }
 
+
+# --------------------------------
+# GATE INTELLIGENCE
+# --------------------------------
+
+@app.get("/gates")
+def get_gates():
+    return {
+        "gates": get_all_gate_info()
+    }
+
+
+@app.get("/gates/{gate_name}")
+def get_gate(gate_name: str):
+    try:
+        return {
+            "gate": gate_name.upper(),
+            "info": get_gate_info(gate_name),
+        }
+    except ValueError as exc:
+        return {
+            "error": str(exc)
+        }
+
+
+# --------------------------------
+# QUANTUM SIMULATION
+# --------------------------------
 
 @app.post("/simulate")
 def simulate(request: SimulationRequest):
@@ -90,6 +130,14 @@ def simulate(request: SimulationRequest):
         measurement_analysis = analyze_measurements(
             result["counts"],
             result["shots"],
+        )
+
+        # Generate educational circuit explanation
+        circuit_explanation = explain_circuit(
+            circuit,
+            circuit_analysis,
+            state_analysis,
+            measurement_analysis,
         )
 
         return {
@@ -140,8 +188,11 @@ def simulate(request: SimulationRequest):
                 "explanation": circuit_analysis["explanation"],
             },
 
+            "circuit_explanation": circuit_explanation,
+
             "circuit_diagram": str(circuit.draw()),
         }
+
 
     # --------------------------------
     # CUSTOM CIRCUIT
@@ -186,6 +237,14 @@ def simulate(request: SimulationRequest):
         measurement_analysis = analyze_measurements(
             result["counts"],
             result["shots"],
+        )
+
+        # Generate educational circuit explanation
+        circuit_explanation = explain_circuit(
+            circuit,
+            circuit_analysis,
+            state_analysis,
+            measurement_analysis,
         )
 
         return {
@@ -236,7 +295,259 @@ def simulate(request: SimulationRequest):
                 "explanation": circuit_analysis["explanation"],
             },
 
+            "circuit_explanation": circuit_explanation,
+
             "circuit_diagram": str(circuit.draw()),
+        }
+
+    except (KeyError, ValueError, TypeError) as exc:
+        return {
+            "error": str(exc)
+        }
+
+
+
+# --------------------------------
+# AI TUTOR
+# --------------------------------
+
+@app.post("/explain")
+def explain(request: ExplainRequest):
+
+    try:
+
+        circuit_request = request.circuit
+
+        # Build the circuit using the existing simulation system
+        if circuit_request.algorithm:
+
+            algorithms = {
+                "superposition": superposition,
+                "bell": bell_state,
+                "ghz": ghz_state,
+            }
+
+            algorithm_name = circuit_request.algorithm.lower()
+
+            if algorithm_name not in algorithms:
+                return {
+                    "error": "Unknown algorithm",
+                    "available_algorithms": list(algorithms.keys()),
+                }
+
+            circuit = algorithms[algorithm_name]()
+
+        else:
+
+            if circuit_request.qubits is None:
+                return {
+                    "error": "qubits is required for a custom circuit"
+                }
+
+            if circuit_request.gates is None:
+                return {
+                    "error": "gates is required for a custom circuit"
+                }
+
+            gates = [
+                gate.model_dump(exclude_none=True)
+                for gate in circuit_request.gates
+            ]
+
+            circuit = build_circuit(
+                num_qubits=circuit_request.qubits,
+                gates=gates,
+            )
+
+        # Run simulation
+        result = simulator.run(
+            circuit,
+            shots=circuit_request.shots,
+        )
+
+        # Analyze circuit
+        circuit_analysis = analyze_circuit(circuit)
+
+        # Analyze quantum state
+        statevector = simulator.statevector(circuit)
+
+        state_analysis = analyze_statevector(
+            statevector,
+            circuit.num_qubits,
+        )
+
+        # Analyze measurements
+        measurement_analysis = analyze_measurements(
+            result["counts"],
+            result["shots"],
+        )
+
+        # Generate AI tutor response
+        tutor_response = generate_tutor_response(
+            question=request.question,
+            circuit_analysis=circuit_analysis,
+            state_analysis=state_analysis,
+            measurement_analysis=measurement_analysis,
+        )
+
+        return {
+            "question": request.question,
+
+            "answer": tutor_response["answer"],
+
+            "concepts": tutor_response["concepts"],
+
+            "evidence": tutor_response["evidence"],
+
+            "circuit": {
+                "num_qubits": circuit_analysis["num_qubits"],
+                "depth": circuit_analysis["depth"],
+                "total_gates": circuit_analysis["total_gates"],
+                "gate_counts": circuit_analysis["gate_counts"],
+            },
+
+            "state": {
+                "state_expression": state_analysis["state_expression"],
+                "probabilities": state_analysis["probabilities"],
+            },
+
+            "measurement": {
+                "most_likely_state": measurement_analysis[
+                    "most_likely_state"
+                ],
+                "most_likely_probability": measurement_analysis[
+                    "most_likely_probability"
+                ],
+                "distribution": measurement_analysis["distribution"],
+            },
+        }
+
+    except (KeyError, ValueError, TypeError) as exc:
+        return {
+            "error": str(exc)
+        }
+# --------------------------------
+# AI CIRCUIT DEBUGGER
+# --------------------------------
+
+@app.post("/debug")
+def debug(request: SimulationRequest):
+
+    try:
+
+        # --------------------------------
+        # BUILD CIRCUIT
+        # --------------------------------
+
+        if request.algorithm:
+
+            algorithms = {
+                "superposition": superposition,
+                "bell": bell_state,
+                "ghz": ghz_state,
+            }
+
+            algorithm_name = request.algorithm.lower()
+
+            if algorithm_name not in algorithms:
+                return {
+                    "error": "Unknown algorithm",
+                    "available_algorithms": list(algorithms.keys()),
+                }
+
+            circuit = algorithms[algorithm_name]()
+
+        else:
+
+            if request.qubits is None:
+                return {
+                    "error": "qubits is required for a custom circuit"
+                }
+
+            if request.gates is None:
+                return {
+                    "error": "gates is required for a custom circuit"
+                }
+
+            gates = [
+                gate.model_dump(exclude_none=True)
+                for gate in request.gates
+            ]
+
+            circuit = build_circuit(
+                num_qubits=request.qubits,
+                gates=gates,
+            )
+
+        # --------------------------------
+        # SIMULATION
+        # --------------------------------
+
+        result = simulator.run(
+            circuit,
+            shots=request.shots,
+        )
+
+        # --------------------------------
+        # ANALYSIS
+        # --------------------------------
+
+        circuit_analysis = analyze_circuit(circuit)
+
+        statevector = simulator.statevector(circuit)
+
+        state_analysis = analyze_statevector(
+            statevector,
+            circuit.num_qubits,
+        )
+
+        measurement_analysis = analyze_measurements(
+            result["counts"],
+            result["shots"],
+        )
+
+        # --------------------------------
+        # DEBUGGER
+        # --------------------------------
+
+        debugger_result = debug_circuit(
+            circuit_analysis=circuit_analysis,
+            state_analysis=state_analysis,
+            measurement_analysis=measurement_analysis,
+        )
+
+        return {
+            "status": debugger_result["status"],
+            "summary": debugger_result["summary"],
+
+            "issues": debugger_result["issues"],
+
+            "suggestions": debugger_result["suggestions"],
+
+            "circuit": {
+                "num_qubits": circuit_analysis["num_qubits"],
+                "depth": circuit_analysis["depth"],
+                "total_gates": circuit_analysis["total_gates"],
+                "gate_counts": circuit_analysis["gate_counts"],
+            },
+
+            "state": {
+                "state_expression": state_analysis[
+                    "state_expression"
+                ],
+            },
+
+            "measurement": {
+                "distribution": measurement_analysis[
+                    "distribution"
+                ],
+                "most_likely_state": measurement_analysis[
+                    "most_likely_state"
+                ],
+                "most_likely_probability": measurement_analysis[
+                    "most_likely_probability"
+                ],
+            },
         }
 
     except (KeyError, ValueError, TypeError) as exc:
