@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+
 from engine.gate_explanations import get_gate_info, get_all_gate_info
 from engine.algorithms import superposition, bell_state, ghz_state
 from engine.simulator import QuantumSimulator
@@ -7,6 +8,7 @@ from engine.circuit_builder import build_circuit
 from engine.circuit_analyzer import analyze_circuit
 from engine.state_analyzer import analyze_statevector
 from engine.measurement_analyzer import analyze_measurements
+from engine.circuit_explainer import explain_circuit
 
 
 app = FastAPI(
@@ -14,6 +16,7 @@ app = FastAPI(
     description="Quantum circuit simulation and educational analysis API",
     version="1.0.0",
 )
+
 
 simulator = QuantumSimulator()
 
@@ -45,13 +48,21 @@ def home():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy"
+    }
+
+
+# --------------------------------
+# GATE INTELLIGENCE
+# --------------------------------
 
 @app.get("/gates")
 def get_gates():
     return {
         "gates": get_all_gate_info()
     }
+
 
 @app.get("/gates/{gate_name}")
 def get_gate(gate_name: str):
@@ -64,6 +75,11 @@ def get_gate(gate_name: str):
         return {
             "error": str(exc)
         }
+
+
+# --------------------------------
+# QUANTUM SIMULATION
+# --------------------------------
 
 @app.post("/simulate")
 def simulate(request: SimulationRequest):
@@ -107,6 +123,14 @@ def simulate(request: SimulationRequest):
         measurement_analysis = analyze_measurements(
             result["counts"],
             result["shots"],
+        )
+
+        # Generate educational circuit explanation
+        circuit_explanation = explain_circuit(
+            circuit,
+            circuit_analysis,
+            state_analysis,
+            measurement_analysis,
         )
 
         return {
@@ -157,8 +181,11 @@ def simulate(request: SimulationRequest):
                 "explanation": circuit_analysis["explanation"],
             },
 
+            "circuit_explanation": circuit_explanation,
+
             "circuit_diagram": str(circuit.draw()),
         }
+
 
     # --------------------------------
     # CUSTOM CIRCUIT
@@ -203,6 +230,14 @@ def simulate(request: SimulationRequest):
         measurement_analysis = analyze_measurements(
             result["counts"],
             result["shots"],
+        )
+
+        # Generate educational circuit explanation
+        circuit_explanation = explain_circuit(
+            circuit,
+            circuit_analysis,
+            state_analysis,
+            measurement_analysis,
         )
 
         return {
@@ -252,6 +287,8 @@ def simulate(request: SimulationRequest):
                 ],
                 "explanation": circuit_analysis["explanation"],
             },
+
+            "circuit_explanation": circuit_explanation,
 
             "circuit_diagram": str(circuit.draw()),
         }
