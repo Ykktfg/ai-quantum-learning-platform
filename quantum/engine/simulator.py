@@ -18,8 +18,15 @@ class QuantumSimulator:
         result = self.backend.run(compiled, shots=shots).result()
         counts = result.get_counts()
 
+        # Convert measurement counts into probabilities.
+        probabilities = {
+            state: count / shots
+            for state, count in counts.items()
+        }
+
         return {
             "counts": dict(counts),
+            "probabilities": probabilities,
             "shots": shots,
             "num_qubits": circuit.num_qubits,
             "depth": circuit.depth(),
@@ -34,6 +41,9 @@ class QuantumSimulator:
         state = Statevector.from_instruction(clean)
 
         return [
-            {"real": float(amplitude.real), "imag": float(amplitude.imag)}
+            {
+                "real": float(amplitude.real),
+                "imag": float(amplitude.imag),
+            }
             for amplitude in state.data
         ]
