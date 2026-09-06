@@ -27,8 +27,8 @@ if BACKEND_ROOT not in sys.path:
 # Import SQLAlchemy Base and models
 # ------------------------------------------------------------
 
-from backend.app.db.database import Base
-from backend.app.db import models
+from app.db.database import Base
+from app.db import models
 
 # ------------------------------------------------------------
 # Alembic Config
