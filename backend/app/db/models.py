@@ -618,6 +618,7 @@ class UserAchievement(Base):
         DateTime,
         nullable=False,
         default=datetime.utcnow,
+
     )
 
 class AIConversation(Base):
@@ -685,3 +686,4 @@ class AICircuitExplanation(Base):
     question = Column(Text, nullable=False)
     explanation = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
