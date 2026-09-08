@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -19,6 +19,8 @@ from app.api.routes.simulation import router as simulation_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.activity import router as activity_router
 from app.api.routes.analytics import router as analytics_router
+from app.api.routes.ai import router as ai_router
+from app.api.routes.quantum import router as quantum_router
 from app.api.routes import lessons
 
 
@@ -71,6 +73,8 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -211,6 +215,27 @@ app.include_router(
 
 
 # ============================================================
+# ============================================================
+# AI ROUTES
+# ============================================================
+
+app.include_router(
+    ai_router,
+    prefix="/api",
+    tags=["AI"],
+)
+
+
+# ============================================================
+# QUANTUM ROUTES
+# ============================================================
+
+app.include_router(
+    quantum_router,
+    prefix="/api",
+    tags=["Quantum"],
+)
+
 # ROOT ENDPOINT
 # ============================================================
 
@@ -220,3 +245,4 @@ def root():
         "message": "AI Quantum Learning Platform Backend",
         "status": "running",
     }
+

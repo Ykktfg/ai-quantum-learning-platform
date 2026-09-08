@@ -226,46 +226,6 @@ def get_my_progress(
 
 
 # ============================================================
-# GET PROGRESS FOR ONE COURSE
-# ============================================================
-
-@router.get(
-    "/progress/{course_id}",
-    response_model=ProgressResponse,
-)
-def get_course_progress(
-    course_id: int,
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Return the logged-in user's progress
-    for a specific course.
-    """
-
-    user_id = get_authenticated_user_id(
-        current_user
-    )
-
-    progress_record = (
-        db.query(Progress)
-        .filter(
-            Progress.user_id == user_id,
-            Progress.course_id == course_id,
-        )
-        .first()
-    )
-
-    if progress_record is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Progress not found for this course",
-        )
-
-    return progress_record
-
-
-# ============================================================
 # PROGRESS ANALYTICS
 # ============================================================
 
@@ -481,3 +441,43 @@ def get_progress_analytics(
             "courses": course_progress,
         },
     }
+
+
+# ============================================================
+# GET PROGRESS FOR ONE COURSE
+# ============================================================
+
+@router.get(
+    "/progress/{course_id}",
+    response_model=ProgressResponse,
+)
+def get_course_progress(
+    course_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Return the logged-in user's progress
+    for a specific course.
+    """
+
+    user_id = get_authenticated_user_id(
+        current_user
+    )
+
+    progress_record = (
+        db.query(Progress)
+        .filter(
+            Progress.user_id == user_id,
+            Progress.course_id == course_id,
+        )
+        .first()
+    )
+
+    if progress_record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Progress not found for this course",
+        )
+
+    return progress_record

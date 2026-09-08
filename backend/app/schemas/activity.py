@@ -5,6 +5,7 @@ class ActivityCreate(BaseModel):
     activity_type: str
     course_id: int | None = None
     description: str
+    xp_earned: int = 0
 
 
 class ActivityResponse(BaseModel):
@@ -13,3 +14,4 @@ class ActivityResponse(BaseModel):
     activity_type: str
     course_id: int | None
     description: str
+    xp_earned: int

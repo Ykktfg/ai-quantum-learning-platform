@@ -1,21 +1,73 @@
-import json
+﻿from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
+from app.services.simulation_service import simulation_service
+
+router = APIRouter()
+# ------------------------------------------------------------
+# DIRECT SIMULATION
+# Frontend compatibility endpoint.
+# Does not persist a SimulationResult.
+# ------------------------------------------------------------
+
+class DirectSimulationRequest(BaseModel):
+    qubits: int = Field(..., ge=1, le=20)
+    gates: list[dict[str, Any]] = Field(default_factory=list)
+    shots: int = Field(default=1024, ge=1, le=100000)
+    backend: str = Field(default="qiskit", min_length=1, max_length=50)
+
+
+@router.post("/simulate")
+def direct_simulation(
+    request: DirectSimulationRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    try:
+        normalized_gates = normalize_frontend_gates(
+            request.gates
+        )
+
+        circuit_data = {
+            "qubits": request.qubits,
+            "gates": normalized_gates,
+        }
+
+        return simulation_service.simulate_direct(
+            circuit_data=circuit_data,
+            backend=request.backend,
+            shots=request.shots,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Quantum simulation service error: {exc}",
+        ) from exc
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Simulation error: {exc}",
+        ) from exc
+
+import json
+
+from sqlalchemy.orm import Session
+
 from app.db.database import get_db
 from app.db.models import Circuit
 from app.repositories.simulation_repository import (
     simulation_repository,
 )
-from app.services.simulation_service import simulation_service
-
-
-router = APIRouter()
-
-
 # ============================================================
 # SIMULATION REQUEST
 # ============================================================
@@ -37,6 +89,63 @@ class SimulationRequest(BaseModel):
 # ============================================================
 # HELPER - GET USER ID
 # ============================================================
+
+def normalize_frontend_gates(
+    gates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Normalize gate payloads produced by the frontend circuit builder.
+    """
+
+    normalized: list[dict[str, Any]] = []
+
+    for gate in gates:
+        if not isinstance(gate, dict):
+            raise ValueError("Each gate must be an object")
+
+        item = dict(gate)
+
+        gate_name = str(
+            item.get("gate", item.get("type", ""))
+        ).upper()
+
+        if not gate_name:
+            raise ValueError(
+                "Each gate must contain 'gate' or 'type'"
+            )
+
+        # QuantumClient expects the canonical gate field as "type".
+        item["type"] = gate_name
+
+        # Keep "gate" as well because the frontend contract uses it.
+        item["gate"] = gate_name
+
+        # Frontend sends single-qubit gates as:
+        # {"gate": "H", "qubit": 0}
+        #
+        # Quantum expects:
+        # {"type": "H", "target": 0}
+        if "qubit" in item and "target" not in item:
+            item["target"] = item["qubit"]
+
+        # Frontend sends SWAP as:
+        # {
+        #     "gate": "SWAP",
+        #     "qubit1": 0,
+        #     "qubit2": 1
+        # }
+        #
+        # Normalize to the backend/Quantum contract.
+        if gate_name == "SWAP":
+            if "qubit1" in item and "control" not in item:
+                item["control"] = item["qubit1"]
+
+            if "qubit2" in item and "target" not in item:
+                item["target"] = item["qubit2"]
+
+        normalized.append(item)
+
+    return normalized
 
 def get_authenticated_user_id(
     current_user: dict,
@@ -77,8 +186,8 @@ def simulate_circuit(
     db: Session = Depends(get_db),
 ):
     """
-    Run a quantum circuit using Qiskit Aer
-    and permanently save the result.
+    Run a quantum circuit through the Quantum team's API
+    and permanently save the normalized result.
     """
 
     user_id = get_authenticated_user_id(
@@ -130,12 +239,12 @@ def simulate_circuit(
 
     backend = request.backend.lower().strip()
 
-    if backend not in ["qiskit"]:
+    if backend not in ["qiskit", "aer"]:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Unsupported simulation backend: {backend}. "
-                "Currently supported backend: qiskit"
+                "Currently supported backends: qiskit, aer"
             ),
         )
 
@@ -144,7 +253,6 @@ def simulate_circuit(
     # --------------------------------------------------------
 
     try:
-
         result = simulation_service.submit_simulation(
             circuit_id=circuit_id,
             circuit_data=circuit.circuit_data,
@@ -153,31 +261,43 @@ def simulate_circuit(
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=(
                 "Invalid circuit or simulation request: "
                 f"{str(exc)}"
             ),
-        )
+        ) from exc
+
+    except RuntimeError as exc:
+        # 502 = backend could not successfully communicate
+        # with the external Quantum simulation service.
+        raise HTTPException(
+            status_code=502,
+            detail=f"Quantum simulation service error: {str(exc)}",
+        ) from exc
 
     except Exception as exc:
-
         raise HTTPException(
             status_code=500,
             detail=f"Simulation failed: {str(exc)}",
-        )
+        ) from exc
 
     # --------------------------------------------------------
     # Validate result
     # --------------------------------------------------------
 
+    if not isinstance(result, dict):
+        raise HTTPException(
+            status_code=502,
+            detail="Simulation service returned an invalid response",
+        )
+
     job_id = result.get("job_id")
 
     if not job_id:
         raise HTTPException(
-            status_code=500,
+            status_code=502,
             detail=(
                 "Simulation service did not return "
                 "a job ID"
@@ -202,7 +322,6 @@ def simulate_circuit(
     # --------------------------------------------------------
 
     try:
-
         simulation = simulation_repository.create(
             db=db,
             user_id=user_id,
@@ -215,7 +334,6 @@ def simulate_circuit(
         )
 
     except Exception as exc:
-
         db.rollback()
 
         raise HTTPException(
@@ -224,7 +342,7 @@ def simulate_circuit(
                 "Failed to save simulation result: "
                 f"{str(exc)}"
             ),
-        )
+        ) from exc
 
     # --------------------------------------------------------
     # Response
@@ -325,9 +443,7 @@ def get_simulation_results(
     results = []
 
     for simulation in simulations:
-
         try:
-
             counts = (
                 json.loads(simulation.result_data)
                 if simulation.result_data
@@ -338,7 +454,6 @@ def get_simulation_results(
             json.JSONDecodeError,
             TypeError,
         ):
-
             counts = {}
 
         results.append(
@@ -394,9 +509,7 @@ def get_my_simulations(
     simulation_results = []
 
     for simulation in simulations:
-
         try:
-
             counts = (
                 json.loads(simulation.result_data)
                 if simulation.result_data
@@ -407,7 +520,6 @@ def get_my_simulations(
             json.JSONDecodeError,
             TypeError,
         ):
-
             counts = {}
 
         simulation_results.append(
@@ -430,3 +542,8 @@ def get_my_simulations(
         ),
         "simulations": simulation_results,
     }
+
+
+
+
+

@@ -1,0 +1,210 @@
+import json
+import uuid
+from typing import Any
+
+from app.services.quantum_client import quantum_client
+
+
+class SimulationService:
+    """
+    Backend simulation service.
+
+    The backend does not execute the quantum circuit itself.
+    It sends the circuit to the Quantum team's API through
+    quantum_client and normalizes the response for the backend.
+    """
+
+    SUPPORTED_BACKENDS = {
+        "qiskit",
+        "aer",
+    }
+
+    # ========================================================
+    # SUBMIT SIMULATION
+    # ========================================================
+
+    def submit_simulation(
+        self,
+        circuit_id: int,
+        circuit_data: str,
+        backend: str,
+        shots: int,
+    ) -> dict[str, Any]:
+        """
+        Send a stored circuit to the Quantum team's API.
+
+        The Quantum API performs the actual quantum simulation.
+        This service converts the Quantum response into the
+        response format expected by the backend.
+        """
+
+        # ----------------------------------------------------
+        # Validate circuit ID
+        # ----------------------------------------------------
+
+        if circuit_id <= 0:
+            raise ValueError(
+                "Circuit ID must be greater than 0"
+            )
+
+        # ----------------------------------------------------
+        # Validate backend
+        # ----------------------------------------------------
+
+        backend = backend.lower().strip()
+
+        if backend not in self.SUPPORTED_BACKENDS:
+            raise ValueError(
+                f"Unsupported simulation backend: {backend}"
+            )
+
+        # ----------------------------------------------------
+        # Validate shots
+        # ----------------------------------------------------
+
+        if shots < 1:
+            raise ValueError(
+                "Shots must be at least 1"
+            )
+
+        if shots > 100000:
+            raise ValueError(
+                "Shots cannot exceed 100000"
+            )
+
+        # ----------------------------------------------------
+        # Parse circuit JSON
+        # ----------------------------------------------------
+
+        try:
+            data = json.loads(circuit_data)
+
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ValueError(
+                "Invalid circuit data"
+            ) from exc
+
+        if not isinstance(data, dict):
+            raise ValueError(
+                "Circuit data must be an object"
+            )
+
+        # ----------------------------------------------------
+        # Validate number of qubits
+        # ----------------------------------------------------
+
+        qubits = data.get("qubits")
+
+        if not isinstance(qubits, int):
+            raise ValueError(
+                "Circuit must contain a valid integer 'qubits'"
+            )
+
+        if qubits < 1:
+            raise ValueError(
+                "Circuit must contain at least one qubit"
+            )
+
+        if qubits > 20:
+            raise ValueError(
+                "Circuit cannot contain more than 20 qubits"
+            )
+
+        # ----------------------------------------------------
+        # Validate gates
+        # ----------------------------------------------------
+
+        gates = data.get("gates", [])
+
+        if not isinstance(gates, list):
+            raise ValueError(
+                "Circuit 'gates' must be a list"
+            )
+
+        # ----------------------------------------------------
+        # Send circuit to Quantum API
+        # ----------------------------------------------------
+
+        try:
+            quantum_result = quantum_client.simulate(
+                circuit_data=data,
+                shots=shots,
+            )
+
+        except ValueError:
+            raise
+
+        except RuntimeError as exc:
+            raise RuntimeError(
+                f"Quantum simulation service unavailable: {exc}"
+            ) from exc
+
+        # ----------------------------------------------------
+        # Validate Quantum API response
+        # ----------------------------------------------------
+
+        if not isinstance(quantum_result, dict):
+            raise RuntimeError(
+                "Quantum API returned an invalid response"
+            )
+
+        # ----------------------------------------------------
+        # Extract simulation result
+        # ----------------------------------------------------
+
+        simulation = quantum_result.get(
+            "simulation",
+            {}
+        )
+
+        if not isinstance(simulation, dict):
+            raise RuntimeError(
+                "Quantum API returned an invalid simulation result"
+            )
+
+        counts = simulation.get(
+            "counts",
+            {}
+        )
+
+        if not isinstance(counts, dict):
+            raise RuntimeError(
+                "Quantum API returned invalid measurement counts"
+            )
+
+        returned_shots = simulation.get(
+            "shots",
+            shots
+        )
+
+        # ----------------------------------------------------
+        # Generate backend job ID
+        # ----------------------------------------------------
+
+        job_id = (
+            f"job-{uuid.uuid4().hex[:12]}"
+        )
+
+        # ----------------------------------------------------
+        # Return normalized backend response
+        # ----------------------------------------------------
+
+        return {
+            "job_id": job_id,
+            "circuit_id": circuit_id,
+            "backend": backend,
+            "shots": returned_shots,
+            "status": "completed",
+            "counts": counts,
+
+            # Keep the richer Quantum API response available
+            # for future AI/analytics integration.
+            "quantum_result": quantum_result,
+        }
+
+
+# ============================================================
+# SINGLE SERVICE INSTANCE
+# ============================================================
+
+simulation_service = SimulationService()
