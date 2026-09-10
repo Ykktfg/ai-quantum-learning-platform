@@ -618,4 +618,72 @@ class UserAchievement(Base):
         DateTime,
         nullable=False,
         default=datetime.utcnow,
+
     )
+
+class AIConversation(Base):
+    __tablename__ = "ai_conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=True)
+    context_type = Column(String, nullable=True)
+    circuit_id = Column(Integer, ForeignKey("circuits.id"), nullable=True, index=True)
+    lesson_id = Column(Integer, ForeignKey("lessons.id"), nullable=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIMessage(Base):
+    __tablename__ = "ai_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(
+        Integer,
+        ForeignKey("ai_conversations.id"),
+        nullable=False,
+        index=True,
+    )
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class AICodeGeneration(Base):
+    __tablename__ = "ai_code_generations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    request = Column(Text, nullable=False)
+    generated_code = Column(Text, nullable=False)
+    validation_status = Column(String, nullable=True)
+    validation_error = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class AIDebugSession(Base):
+    __tablename__ = "ai_debug_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    circuit_id = Column(Integer, ForeignKey("circuits.id"), nullable=True, index=True)
+    code = Column(Text, nullable=True)
+    reported_error = Column(Text, nullable=True)
+    validation_status = Column(String, nullable=True)
+    simulation_status = Column(String, nullable=True)
+    ai_explanation = Column(Text, nullable=True)
+    corrected_code = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class AICircuitExplanation(Base):
+    __tablename__ = "ai_circuit_explanations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    circuit_id = Column(Integer, ForeignKey("circuits.id"), nullable=True, index=True)
+    simulation_id = Column(Integer, ForeignKey("simulations.id"), nullable=True, index=True)
+    question = Column(Text, nullable=False)
+    explanation = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+

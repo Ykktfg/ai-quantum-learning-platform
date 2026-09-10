@@ -57,7 +57,7 @@ def serialize_user_profile(user: User) -> dict:
     frontend profile response.
     """
 
-    join_date = getattr(user, "join_date", None)
+    join_date = getattr(user, "joined_at", None)
 
     if isinstance(join_date, (datetime, date)):
         join_date = join_date.isoformat()
@@ -80,7 +80,7 @@ def serialize_user_profile(user: User) -> dict:
         # Learning statistics
         "xp": getattr(
             user,
-            "xp",
+            "xp_points",
             0,
         ),
 
@@ -97,7 +97,6 @@ def serialize_user_profile(user: User) -> dict:
         ),
     }
 
-
 # ============================================================
 # GET CURRENT USER PROFILE
 # ============================================================
@@ -108,8 +107,8 @@ def get_my_profile(
     db: Session = Depends(get_db),
 ):
     """
-    Return the complete profile of the
-    currently authenticated user.
+    Return the profile of the currently
+    authenticated user.
     """
 
     user_id = get_authenticated_user_id(
@@ -118,9 +117,7 @@ def get_my_profile(
 
     user = (
         db.query(User)
-        .filter(
-            User.id == user_id
-        )
+        .filter(User.id == user_id)
         .first()
     )
 
@@ -132,8 +129,5 @@ def get_my_profile(
 
     return {
         "success": True,
-
-        "user": serialize_user_profile(
-            user
-        ),
+        "user": serialize_user_profile(user),
     }

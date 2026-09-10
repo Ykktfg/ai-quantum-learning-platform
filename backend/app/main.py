@@ -2,6 +2,8 @@
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.ai.routes import router as ai_router
+
 from app.core.exceptions import global_exception_handler
 from app.core.validation import validation_exception_handler
 
@@ -24,10 +26,6 @@ from app.api.routes.quantum import router as quantum_router
 from app.api.routes import lessons
 
 
-# ============================================================
-# FASTAPI APPLICATION
-# ============================================================
-
 app = FastAPI(
     title="AI Quantum Learning Platform API",
     description=(
@@ -38,18 +36,8 @@ app = FastAPI(
 )
 
 
-# ============================================================
-# DATABASE INITIALIZATION
-# ============================================================
+Base.metadata.create_all(bind=engine)
 
-Base.metadata.create_all(
-    bind=engine
-)
-
-
-# ============================================================
-# GLOBAL EXCEPTION HANDLERS
-# ============================================================
 
 app.add_exception_handler(
     Exception,
@@ -61,10 +49,6 @@ app.add_exception_handler(
     validation_exception_handler,
 )
 
-
-# ============================================================
-# CORS CONFIGURATION
-# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,136 +66,20 @@ app.add_middleware(
 )
 
 
-# ============================================================
-# HEALTH ROUTES
-# ============================================================
+app.include_router(ai_router)
 
-app.include_router(
-    health_router,
-    prefix="/api",
-    tags=["Health"],
-)
-
-
-# ============================================================
-# AUTHENTICATION ROUTES
-# ============================================================
-
-app.include_router(
-    auth_router,
-    prefix="/api",
-    tags=["Authentication"],
-)
-
-
-# ============================================================
-# USER ROUTES
-# ============================================================
-
-app.include_router(
-    user_router,
-    prefix="/api",
-    tags=["Users"],
-)
-
-
-# ============================================================
-# COURSE ROUTES
-# ============================================================
-
-app.include_router(
-    course_router,
-    prefix="/api",
-    tags=["Courses"],
-)
-
-
-# ============================================================
-# ENROLLMENT ROUTES
-# ============================================================
-
-app.include_router(
-    enrollment_router,
-    prefix="/api",
-    tags=["Enrollments"],
-)
-
-
-# ============================================================
-# LESSON ROUTES
-# ============================================================
-
-app.include_router(
-    lessons.router,
-    prefix="/api",
-    tags=["Lessons"],
-)
-
-
-# ============================================================
-# PROGRESS ROUTES
-# ============================================================
-
-app.include_router(
-    progress_router,
-    prefix="/api",
-    tags=["Progress"],
-)
-
-
-# ============================================================
-# CIRCUIT ROUTES
-# ============================================================
-
-app.include_router(
-    circuit_router,
-    prefix="/api",
-    tags=["Circuits"],
-)
-
-
-# ============================================================
-# SIMULATION ROUTES
-# ============================================================
-
-app.include_router(
-    simulation_router,
-    prefix="/api",
-    tags=["Simulation"],
-)
-
-
-# ============================================================
-# DASHBOARD ROUTES
-# ============================================================
-
-app.include_router(
-    dashboard_router,
-    prefix="/api",
-    tags=["Dashboard"],
-)
-
-
-# ============================================================
-# ACTIVITY ROUTES
-# ============================================================
-
-app.include_router(
-    activity_router,
-    prefix="/api",
-    tags=["Activity"],
-)
-
-
-# ============================================================
-# ANALYTICS ROUTES
-# ============================================================
-
-app.include_router(
-    analytics_router,
-    prefix="/api",
-    tags=["Analytics"],
-)
+app.include_router(health_router, prefix="/api", tags=["Health"])
+app.include_router(auth_router, prefix="/api", tags=["Authentication"])
+app.include_router(user_router, prefix="/api", tags=["Users"])
+app.include_router(course_router, prefix="/api", tags=["Courses"])
+app.include_router(enrollment_router, prefix="/api", tags=["Enrollments"])
+app.include_router(lessons.router, prefix="/api", tags=["Lessons"])
+app.include_router(progress_router, prefix="/api", tags=["Progress"])
+app.include_router(circuit_router, prefix="/api", tags=["Circuits"])
+app.include_router(simulation_router, prefix="/api", tags=["Simulation"])
+app.include_router(dashboard_router, prefix="/api", tags=["Dashboard"])
+app.include_router(activity_router, prefix="/api", tags=["Activity"])
+app.include_router(analytics_router, prefix="/api", tags=["Analytics"])
 
 
 # ============================================================
