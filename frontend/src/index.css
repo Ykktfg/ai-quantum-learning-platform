@@ -40,12 +40,8 @@
   --color-quantum-violet: var(--quantum-violet);
   --color-quantum-glow: var(--quantum-glow);
 
-  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui,
-    'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Math', sans-serif;
-
-  --font-mono: var(--font-jetbrains-mono), ui-monospace,
-    'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Math',
-    'DejaVu Sans Mono', monospace;
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Math', sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'Noto Sans Math', 'DejaVu Sans Mono', monospace;
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -56,48 +52,32 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* =========================================================
-   1. ORIGINAL QUANTUM THEME
-   Cyan + Violet
-   Default theme
-   ========================================================= */
-
-:root {
+:root,
+.dark {
   color-scheme: dark;
-
   --background: oklch(0.16 0.028 264);
   --foreground: oklch(0.96 0.008 250);
-
   --card: oklch(0.21 0.032 264);
   --card-foreground: oklch(0.96 0.008 250);
-
   --popover: oklch(0.19 0.03 264);
   --popover-foreground: oklch(0.96 0.008 250);
-
   --primary: oklch(0.75 0.15 197);
   --primary-foreground: oklch(0.16 0.028 264);
-
   --secondary: oklch(0.28 0.04 264);
   --secondary-foreground: oklch(0.96 0.008 250);
-
   --muted: oklch(0.26 0.035 264);
   --muted-foreground: oklch(0.68 0.03 260);
-
   --accent: oklch(0.62 0.22 300);
   --accent-foreground: oklch(0.98 0.005 250);
-
   --destructive: oklch(0.64 0.22 18);
-
   --border: oklch(0.7 0.05 260 / 14%);
   --input: oklch(0.7 0.05 260 / 18%);
   --ring: oklch(0.75 0.15 197);
-
   --chart-1: oklch(0.75 0.15 197);
   --chart-2: oklch(0.62 0.22 300);
   --chart-3: oklch(0.7 0.16 160);
   --chart-4: oklch(0.78 0.15 85);
   --chart-5: oklch(0.65 0.2 20);
-
   --radius: 0.75rem;
 
   --quantum-cyan: oklch(0.75 0.15 197);
@@ -114,204 +94,29 @@
   --sidebar-ring: oklch(0.75 0.15 197);
 }
 
-/* =========================================================
-   2. PURE DARK THEME
-   Neutral dark
-   ========================================================= */
-
-.dark {
-  color-scheme: dark;
-
-  --background: oklch(0.11 0.01 260);
-  --foreground: oklch(0.95 0.005 260);
-
-  --card: oklch(0.16 0.012 260);
-  --card-foreground: oklch(0.95 0.005 260);
-
-  --popover: oklch(0.14 0.012 260);
-  --popover-foreground: oklch(0.95 0.005 260);
-
-  --primary: oklch(0.82 0.01 260);
-  --primary-foreground: oklch(0.12 0.01 260);
-
-  --secondary: oklch(0.22 0.012 260);
-  --secondary-foreground: oklch(0.92 0.005 260);
-
-  --muted: oklch(0.2 0.012 260);
-  --muted-foreground: oklch(0.65 0.008 260);
-
-  --accent: oklch(0.7 0.01 260);
-  --accent-foreground: oklch(0.12 0.01 260);
-
-  --destructive: oklch(0.64 0.22 18);
-
-  --border: oklch(0.7 0.01 260 / 14%);
-  --input: oklch(0.7 0.01 260 / 18%);
-  --ring: oklch(0.8 0.01 260);
-
-  --chart-1: oklch(0.82 0.01 260);
-  --chart-2: oklch(0.7 0.01 260);
-  --chart-3: oklch(0.62 0.01 260);
-  --chart-4: oklch(0.75 0.01 260);
-  --chart-5: oklch(0.55 0.01 260);
-
-  --quantum-cyan: oklch(0.82 0.01 260);
-  --quantum-violet: oklch(0.7 0.01 260);
-  --quantum-glow: oklch(0.82 0.01 260 / 25%);
-
-  --sidebar: oklch(0.13 0.01 260);
-  --sidebar-foreground: oklch(0.9 0.005 260);
-  --sidebar-primary: oklch(0.82 0.01 260);
-  --sidebar-primary-foreground: oklch(0.12 0.01 260);
-  --sidebar-accent: oklch(0.2 0.012 260);
-  --sidebar-accent-foreground: oklch(0.92 0.005 260);
-  --sidebar-border: oklch(0.7 0.01 260 / 12%);
-  --sidebar-ring: oklch(0.82 0.01 260);
-}
-
-/* =========================================================
-   3. SKY BLUE THEME
-   ========================================================= */
-
-.sky-blue {
-  color-scheme: dark;
-
-  --background: oklch(0.15 0.035 245);
-  --foreground: oklch(0.97 0.008 220);
-
-  --card: oklch(0.2 0.04 245);
-  --card-foreground: oklch(0.97 0.008 220);
-
-  --popover: oklch(0.18 0.038 245);
-  --popover-foreground: oklch(0.97 0.008 220);
-
-  --primary: oklch(0.78 0.15 225);
-  --primary-foreground: oklch(0.15 0.035 245);
-
-  --secondary: oklch(0.27 0.05 245);
-  --secondary-foreground: oklch(0.96 0.01 220);
-
-  --muted: oklch(0.25 0.04 245);
-  --muted-foreground: oklch(0.7 0.035 225);
-
-  --accent: oklch(0.72 0.14 205);
-  --accent-foreground: oklch(0.14 0.03 245);
-
-  --destructive: oklch(0.64 0.22 18);
-
-  --border: oklch(0.72 0.07 225 / 16%);
-  --input: oklch(0.72 0.07 225 / 20%);
-  --ring: oklch(0.78 0.15 225);
-
-  --chart-1: oklch(0.78 0.15 225);
-  --chart-2: oklch(0.72 0.14 205);
-  --chart-3: oklch(0.72 0.15 185);
-  --chart-4: oklch(0.78 0.14 245);
-  --chart-5: oklch(0.68 0.18 215);
-
-  --quantum-cyan: oklch(0.78 0.15 225);
-  --quantum-violet: oklch(0.72 0.14 205);
-  --quantum-glow: oklch(0.78 0.15 225 / 35%);
-
-  --sidebar: oklch(0.17 0.038 245);
-  --sidebar-foreground: oklch(0.92 0.015 225);
-  --sidebar-primary: oklch(0.78 0.15 225);
-  --sidebar-primary-foreground: oklch(0.15 0.035 245);
-  --sidebar-accent: oklch(0.25 0.045 245);
-  --sidebar-accent-foreground: oklch(0.96 0.01 220);
-  --sidebar-border: oklch(0.72 0.07 225 / 14%);
-  --sidebar-ring: oklch(0.78 0.15 225);
-}
-
-/* =========================================================
-   4. SUNRISE THEME
-   Navy + Orange + Coral + Gold
-   ========================================================= */
-
-.sunrise {
-  color-scheme: dark;
-
-  --background: oklch(0.15 0.025 260);
-  --foreground: oklch(0.97 0.012 75);
-
-  --card: oklch(0.2 0.032 260);
-  --card-foreground: oklch(0.97 0.012 75);
-
-  --popover: oklch(0.18 0.03 260);
-  --popover-foreground: oklch(0.97 0.012 75);
-
-  --primary: oklch(0.78 0.17 62);
-  --primary-foreground: oklch(0.16 0.025 260);
-
-  --secondary: oklch(0.27 0.035 260);
-  --secondary-foreground: oklch(0.96 0.012 75);
-
-  --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.7 0.03 75);
-
-  --accent: oklch(0.69 0.2 35);
-  --accent-foreground: oklch(0.98 0.008 75);
-
-  --destructive: oklch(0.64 0.22 18);
-
-  --border: oklch(0.72 0.06 70 / 15%);
-  --input: oklch(0.72 0.06 70 / 20%);
-  --ring: oklch(0.78 0.17 62);
-
-  --chart-1: oklch(0.78 0.17 62);
-  --chart-2: oklch(0.69 0.2 35);
-  --chart-3: oklch(0.76 0.15 82);
-  --chart-4: oklch(0.68 0.18 20);
-  --chart-5: oklch(0.7 0.16 45);
-
-  --quantum-cyan: oklch(0.78 0.17 62);
-  --quantum-violet: oklch(0.69 0.2 35);
-  --quantum-glow: oklch(0.78 0.17 62 / 35%);
-
-  --sidebar: oklch(0.17 0.028 260);
-  --sidebar-foreground: oklch(0.92 0.015 75);
-  --sidebar-primary: oklch(0.78 0.17 62);
-  --sidebar-primary-foreground: oklch(0.16 0.025 260);
-  --sidebar-accent: oklch(0.25 0.035 260);
-  --sidebar-accent-foreground: oklch(0.96 0.012 75);
-  --sidebar-border: oklch(0.72 0.06 70 / 14%);
-  --sidebar-ring: oklch(0.78 0.17 62);
-}
-
-/* =========================================================
-   5. LIGHT THEME
-   ========================================================= */
-
+/* ── Light theme ─────────────────────────────────────────────────────────────
+   Clean, professional light surface that keeps the QuantumVerse cyan/violet
+   accents. Applied when the <html> element carries the `light` class. */
 .light {
   color-scheme: light;
-
   --background: oklch(0.98 0.006 250);
   --foreground: oklch(0.24 0.03 264);
-
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.24 0.03 264);
-
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.03 264);
-
   --primary: oklch(0.58 0.13 213);
   --primary-foreground: oklch(0.99 0.004 250);
-
   --secondary: oklch(0.94 0.012 250);
   --secondary-foreground: oklch(0.3 0.03 264);
-
   --muted: oklch(0.95 0.01 250);
   --muted-foreground: oklch(0.5 0.025 260);
-
   --accent: oklch(0.55 0.2 300);
   --accent-foreground: oklch(0.99 0.004 250);
-
   --destructive: oklch(0.58 0.22 18);
-
   --border: oklch(0.32 0.03 264 / 12%);
   --input: oklch(0.32 0.03 264 / 16%);
   --ring: oklch(0.58 0.13 213);
-
   --chart-1: oklch(0.58 0.13 213);
   --chart-2: oklch(0.55 0.2 300);
   --chart-3: oklch(0.58 0.15 160);
@@ -332,23 +137,14 @@
   --sidebar-ring: oklch(0.58 0.13 213);
 }
 
-/* =========================================================
-   BASE
-   ========================================================= */
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
     @apply bg-background text-foreground;
   }
 }
-
-/* =========================================================
-   UTILITIES
-   ========================================================= */
 
 @layer utilities {
   .glass {
@@ -357,110 +153,39 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
   }
-
   .glow-cyan {
-    box-shadow:
-      0 0 0 1px color-mix(
-        in oklch,
-        var(--quantum-cyan) 25%,
-        transparent
-      ),
-      0 0 24px -6px color-mix(
-        in oklch,
-        var(--quantum-cyan) 45%,
-        transparent
-      );
+    box-shadow: 0 0 0 1px oklch(0.75 0.15 197 / 25%), 0 0 24px -6px oklch(0.75 0.15 197 / 45%);
   }
-
   .glow-violet {
-    box-shadow:
-      0 0 0 1px color-mix(
-        in oklch,
-        var(--quantum-violet) 25%,
-        transparent
-      ),
-      0 0 24px -6px color-mix(
-        in oklch,
-        var(--quantum-violet) 45%,
-        transparent
-      );
+    box-shadow: 0 0 0 1px oklch(0.62 0.22 300 / 25%), 0 0 24px -6px oklch(0.62 0.22 300 / 45%);
   }
-
   .text-glow {
-    text-shadow:
-      0 0 18px color-mix(
-        in oklch,
-        var(--quantum-cyan) 55%,
-        transparent
-      );
+    text-shadow: 0 0 18px oklch(0.75 0.15 197 / 55%);
   }
-
   .bg-grid {
     background-image:
-      linear-gradient(
-        to right,
-        oklch(0.7 0.05 260 / 6%) 1px,
-        transparent 1px
-      ),
-      linear-gradient(
-        to bottom,
-        oklch(0.7 0.05 260 / 6%) 1px,
-        transparent 1px
-      );
+      linear-gradient(to right, oklch(0.7 0.05 260 / 6%) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0.7 0.05 260 / 6%) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 }
 
-/* =========================================================
-   ANIMATIONS
-   ========================================================= */
-
 @keyframes quantum-float {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-    opacity: 0.5;
-  }
-
-  50% {
-    transform: translateY(-24px) translateX(12px);
-    opacity: 1;
-  }
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.5; }
+  50% { transform: translateY(-24px) translateX(12px); opacity: 1; }
 }
-
 @keyframes quantum-pulse {
-  0%, 100% {
-    opacity: 0.35;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.7;
-    transform: scale(1.08);
-  }
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.08); }
 }
-
 @keyframes orbit-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
-
 @keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-up {
   animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

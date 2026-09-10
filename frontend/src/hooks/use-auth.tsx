@@ -40,10 +40,10 @@ export interface AuthContextValue {
 
 /*
  * IMPORTANT:
- * 8000 = Quantum Engine
- * 8001 = Backend / Authentication
+ * 8000 = Backend / Authentication
+ * The FastAPI backend is running on port 8000.
  */
-const API_URL = 'http://127.0.0.1:8001'
+const API_URL = 'http://127.0.0.1:8000'
 
 const TOKEN_KEY = 'qv_access_token'
 const USER_KEY = 'qv_auth_user'
@@ -146,7 +146,7 @@ export function AuthProvider({
         )
       } catch {
         throw new Error(
-          'Cannot connect to the backend. Make sure the backend is running on port 8001.',
+          'Cannot connect to the backend. Make sure the backend is running on port 8000.',
         )
       }
 
