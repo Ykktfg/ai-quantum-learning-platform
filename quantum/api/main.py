@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+
+from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel, Field
 
 from engine.gate_explanations import get_gate_info, get_all_gate_info
@@ -13,12 +16,64 @@ from engine.ai_tutor import generate_tutor_response
 from engine.circuit_debugger import debug_circuit
 
 
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
+
 app = FastAPI(
     title="AI Quantum Learning Platform API",
     description="Quantum circuit simulation and educational analysis API",
     version="1.0.0",
 )
 
+
+
+# ============================================================
+# CORS
+# Allows the React/Vite frontend to communicate with the
+# Quantum API running on port 8000.
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# QUANTUM SIMULATOR
+# ============================================================
+
+simulator = QuantumSimulator()
+
+
+# ============================================================
+# REQUEST MODELS
+# ============================================================
+
+class Gate(BaseModel):
+    gate: str
+
+    # Single-qubit gates
+    qubit: int | None = None
+
+    # Controlled gates / SWAP
+    control: int | None = None
+    target: int | None = None
+
+    # CCX / Toffoli
+    control1: int | None = None
+    control2: int | None = None
+
+    # Rotation gates
 
 simulator = QuantumSimulator()
 
@@ -30,13 +85,25 @@ class Gate(BaseModel):
     target: int | None = None
     control1: int | None = None
     control2: int | None = None
+
     angle: float | None = None
 
 
 class SimulationRequest(BaseModel):
     algorithm: str | None = None
+
+
+    # Number of qubits for custom circuits
+    qubits: int | None = Field(default=None, ge=1)
+
+    # Custom circuit gates
+    gates: list[Gate] | None = None
+
+    # Number of measurement shots
+
     qubits: int | None = Field(default=None, ge=1)
     gates: list[Gate] | None = None
+
     shots: int = Field(default=1000, ge=1)
 
 
@@ -44,6 +111,10 @@ class ExplainRequest(BaseModel):
     question: str
     circuit: SimulationRequest
 
+
+# ============================================================
+# BASIC ROUTES
+# ============================================================
 
 @app.get("/")
 def home():
@@ -60,9 +131,15 @@ def health():
     }
 
 
+
+# ============================================================
+# GATE INTELLIGENCE
+# ============================================================
+
 # --------------------------------
 # GATE INTELLIGENCE
 # --------------------------------
+
 
 @app.get("/gates")
 def get_gates():
@@ -78,22 +155,35 @@ def get_gate(gate_name: str):
             "gate": gate_name.upper(),
             "info": get_gate_info(gate_name),
         }
+
     except ValueError as exc:
         return {
             "error": str(exc)
         }
 
 
+
+# ============================================================
+# QUANTUM SIMULATION
+# ============================================================
+
 # --------------------------------
 # QUANTUM SIMULATION
 # --------------------------------
 
+
 @app.post("/simulate")
 def simulate(request: SimulationRequest):
+
+
+    # ========================================================
+    # PRE-BUILT ALGORITHMS
+    # ========================================================
 
     # --------------------------------
     # PRE-BUILT ALGORITHMS
     # --------------------------------
+
 
     if request.algorithm:
 
@@ -132,7 +222,7 @@ def simulate(request: SimulationRequest):
             result["shots"],
         )
 
-        # Generate educational circuit explanation
+
         circuit_explanation = explain_circuit(
             circuit,
             circuit_analysis,
@@ -194,9 +284,15 @@ def simulate(request: SimulationRequest):
         }
 
 
+
+    # ========================================================
+    # CUSTOM CIRCUIT
+    # ========================================================
+
     # --------------------------------
     # CUSTOM CIRCUIT
     # --------------------------------
+
 
     if request.qubits is None:
         return {
@@ -239,7 +335,7 @@ def simulate(request: SimulationRequest):
             result["shots"],
         )
 
-        # Generate educational circuit explanation
+
         circuit_explanation = explain_circuit(
             circuit,
             circuit_analysis,
@@ -301,15 +397,22 @@ def simulate(request: SimulationRequest):
         }
 
     except (KeyError, ValueError, TypeError) as exc:
+
         return {
             "error": str(exc)
         }
 
 
 
+# ============================================================
+# AI TUTOR
+# ============================================================
+
+
 # --------------------------------
 # AI TUTOR
 # --------------------------------
+
 
 @app.post("/explain")
 def explain(request: ExplainRequest):
@@ -318,7 +421,14 @@ def explain(request: ExplainRequest):
 
         circuit_request = request.circuit
 
+
+        # ----------------------------------------------------
+        # BUILD CIRCUIT
+        # ----------------------------------------------------
+
+
         # Build the circuit using the existing simulation system
+
         if circuit_request.algorithm:
 
             algorithms = {
@@ -359,16 +469,32 @@ def explain(request: ExplainRequest):
                 gates=gates,
             )
 
+
+        # ----------------------------------------------------
+        # SIMULATION
+        # ----------------------------------------------------
+
+
         # Run simulation
+
         result = simulator.run(
             circuit,
             shots=circuit_request.shots,
         )
 
+
+        # ----------------------------------------------------
+        # ANALYSIS
+        # ----------------------------------------------------
+
+        circuit_analysis = analyze_circuit(circuit)
+
+
         # Analyze circuit
         circuit_analysis = analyze_circuit(circuit)
 
         # Analyze quantum state
+
         statevector = simulator.statevector(circuit)
 
         state_analysis = analyze_statevector(
@@ -376,13 +502,22 @@ def explain(request: ExplainRequest):
             circuit.num_qubits,
         )
 
+
         # Analyze measurements
+
         measurement_analysis = analyze_measurements(
             result["counts"],
             result["shots"],
         )
 
+
+        # ----------------------------------------------------
+        # AI TUTOR
+        # ----------------------------------------------------
+
+
         # Generate AI tutor response
+
         tutor_response = generate_tutor_response(
             question=request.question,
             circuit_analysis=circuit_analysis,
@@ -423,6 +558,17 @@ def explain(request: ExplainRequest):
         }
 
     except (KeyError, ValueError, TypeError) as exc:
+
+
+        return {
+            "error": str(exc)
+        }
+
+
+# ============================================================
+# AI CIRCUIT DEBUGGER
+# ============================================================
+
         return {
             "error": str(exc)
         }
@@ -430,14 +576,21 @@ def explain(request: ExplainRequest):
 # AI CIRCUIT DEBUGGER
 # --------------------------------
 
+
 @app.post("/debug")
 def debug(request: SimulationRequest):
 
     try:
 
+
+        # ----------------------------------------------------
+        # BUILD CIRCUIT
+        # ----------------------------------------------------
+
         # --------------------------------
         # BUILD CIRCUIT
         # --------------------------------
+
 
         if request.algorithm:
 
@@ -479,18 +632,30 @@ def debug(request: SimulationRequest):
                 gates=gates,
             )
 
+
+        # ----------------------------------------------------
+        # SIMULATION
+        # ----------------------------------------------------
+
         # --------------------------------
         # SIMULATION
         # --------------------------------
+
 
         result = simulator.run(
             circuit,
             shots=request.shots,
         )
 
+
+        # ----------------------------------------------------
+        # ANALYSIS
+        # ----------------------------------------------------
+
         # --------------------------------
         # ANALYSIS
         # --------------------------------
+
 
         circuit_analysis = analyze_circuit(circuit)
 
@@ -506,9 +671,15 @@ def debug(request: SimulationRequest):
             result["shots"],
         )
 
+
+        # ----------------------------------------------------
+        # DEBUGGER
+        # ----------------------------------------------------
+
         # --------------------------------
         # DEBUGGER
         # --------------------------------
+
 
         debugger_result = debug_circuit(
             circuit_analysis=circuit_analysis,
@@ -518,6 +689,7 @@ def debug(request: SimulationRequest):
 
         return {
             "status": debugger_result["status"],
+
             "summary": debugger_result["summary"],
 
             "issues": debugger_result["issues"],
@@ -551,6 +723,7 @@ def debug(request: SimulationRequest):
         }
 
     except (KeyError, ValueError, TypeError) as exc:
+
         return {
             "error": str(exc)
         }

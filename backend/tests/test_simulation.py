@@ -1,33 +1,60 @@
 from fastapi.testclient import TestClient
-
+from unittest.mock import patch
 from app.main import app
-from app.db.models import User, Circuit
+from app.db.models import User
 from app.auth.security import hash_password
-
 from tests.conftest import TestingSessionLocal
 
-
 client = TestClient(app)
-
 
 # ============================================================
 # CONSTANTS
 # ============================================================
-
 TEST_EMAIL = "simulation-test@example.com"
 TEST_PASSWORD = "TestPassword123"
 
+# ============================================================
+# MOCK QUANTUM API RESPONSE
+# ============================================================
+def mock_quantum_result(shots=100):
+    first_count = shots // 2
+    second_count = shots - first_count
+    return {
+        "algorithm": "custom",
+        "qubits": 2,
+        "gates": [
+            {
+                "gate": "H",
+                "qubit": 0,
+            },
+            {
+                "gate": "CX",
+                "control": 0,
+                "target": 1,
+            },
+        ],
+        "shots": shots,
+        "simulation": {
+            "counts": {
+                "00": first_count,
+                "11": second_count,
+            },
+            "probabilities": {
+                "00": first_count / shots,
+                "11": second_count / shots,
+            },
+            "shots": shots,
+        },
+    }
 
 # ============================================================
 # CREATE TEST USER
 # ============================================================
-
 def create_test_user(
     email=TEST_EMAIL,
     name="Simulation Test Student",
 ):
     db = TestingSessionLocal()
-
     try:
         user = (
             db.query(User)
@@ -61,16 +88,13 @@ def create_test_user(
     finally:
         db.close()
 
-
 # ============================================================
 # GET AUTH TOKEN
 # ============================================================
-
 def get_auth_token(
     email=TEST_EMAIL,
 ):
     create_test_user(email=email)
-
     response = client.post(
         "/api/auth/login",
         data={
@@ -83,11 +107,9 @@ def get_auth_token(
 
     return response.json()["access_token"]
 
-
 # ============================================================
 # CIRCUIT PAYLOAD
 # ============================================================
-
 def circuit_payload(
     name="Simulation Test Circuit",
 ):
@@ -107,11 +129,9 @@ def circuit_payload(
         ],
     }
 
-
 # ============================================================
 # CREATE CIRCUIT HELPER
 # ============================================================
-
 def create_circuit(token):
     response = client.post(
         "/api/circuits",
@@ -120,17 +140,18 @@ def create_circuit(token):
         },
         json=circuit_payload(),
     )
-
     assert response.status_code == 200, response.text
 
     return response.json()["circuit"]["id"]
 
-
 # ============================================================
 # TEST 1 - SIMULATE CIRCUIT
 # ============================================================
-
-def test_simulate_circuit():
+@patch(
+    "app.services.simulation_service.quantum_client.simulate"
+)
+def test_simulate_circuit(mock_simulate):
+    mock_simulate.return_value = mock_quantum_result(100)
 
     token = get_auth_token()
 
@@ -152,6 +173,7 @@ def test_simulate_circuit():
     data = response.json()
 
     assert data["success"] is True
+
     assert (
         data["message"]
         == "Circuit simulation completed successfully"
@@ -167,16 +189,21 @@ def test_simulate_circuit():
     assert simulation["job_id"]
     assert simulation["counts"]
 
-    assert sum(
-        simulation["counts"].values()
-    ) == 100
+    assert (
+        sum(simulation["counts"].values())
+        == 100
+    )
 
+    mock_simulate.assert_called_once()
 
 # ============================================================
 # TEST 2 - GET CIRCUIT SIMULATION RESULTS
 # ============================================================
-
-def test_get_simulation_results():
+@patch(
+    "app.services.simulation_service.quantum_client.simulate"
+)
+def test_get_simulation_results(mock_simulate):
+    mock_simulate.return_value = mock_quantum_result(50)
 
     token = get_auth_token()
 
@@ -193,7 +220,9 @@ def test_get_simulation_results():
         },
     )
 
-    assert simulate_response.status_code == 200
+    assert simulate_response.status_code == 200, (
+        simulate_response.text
+    )
 
     response = client.get(
         f"/api/circuits/{circuit_id}/results",
@@ -218,18 +247,27 @@ def test_get_simulation_results():
     assert result["shots"] == 50
     assert result["counts"]
 
+    assert (
+        sum(result["counts"].values())
+        == 50
+    )
+
+    mock_simulate.assert_called_once()
 
 # ============================================================
 # TEST 3 - GET MY SIMULATIONS
 # ============================================================
-
-def test_get_my_simulations():
+@patch(
+    "app.services.simulation_service.quantum_client.simulate"
+)
+def test_get_my_simulations(mock_simulate):
+    mock_simulate.return_value = mock_quantum_result(25)
 
     token = get_auth_token()
 
     circuit_id = create_circuit(token)
 
-    response = client.post(
+    simulate_response = client.post(
         f"/api/circuits/{circuit_id}/simulate",
         headers={
             "Authorization": f"Bearer {token}"
@@ -240,7 +278,9 @@ def test_get_my_simulations():
         },
     )
 
-    assert response.status_code == 200
+    assert simulate_response.status_code == 200, (
+        simulate_response.text
+    )
 
     response = client.get(
         "/api/simulations/me",
@@ -257,13 +297,12 @@ def test_get_my_simulations():
     assert data["total_simulations"] >= 1
     assert len(data["simulations"]) >= 1
 
+    mock_simulate.assert_called_once()
 
 # ============================================================
 # TEST 4 - SIMULATION WITHOUT TOKEN
 # ============================================================
-
 def test_simulate_without_token():
-
     response = client.post(
         "/api/circuits/1/simulate",
         json={
@@ -274,13 +313,10 @@ def test_simulate_without_token():
 
     assert response.status_code == 401
 
-
 # ============================================================
 # TEST 5 - INVALID CIRCUIT ID
 # ============================================================
-
 def test_simulate_invalid_circuit_id():
-
     token = get_auth_token()
 
     response = client.post(
@@ -300,13 +336,10 @@ def test_simulate_invalid_circuit_id():
 
     assert data["detail"] == "Invalid circuit ID"
 
-
 # ============================================================
 # TEST 6 - NONEXISTENT CIRCUIT
 # ============================================================
-
 def test_simulate_nonexistent_circuit():
-
     token = get_auth_token()
 
     response = client.post(
@@ -326,13 +359,10 @@ def test_simulate_nonexistent_circuit():
 
     assert data["detail"] == "Circuit not found"
 
-
 # ============================================================
 # TEST 7 - UNSUPPORTED BACKEND
 # ============================================================
-
 def test_simulate_unsupported_backend():
-
     token = get_auth_token()
 
     circuit_id = create_circuit(token)
@@ -352,15 +382,15 @@ def test_simulate_unsupported_backend():
 
     data = response.json()
 
-    assert "Unsupported simulation backend" in data["detail"]
-
+    assert (
+        "Unsupported simulation backend"
+        in data["detail"]
+    )
 
 # ============================================================
 # TEST 8 - CIRCUIT OWNERSHIP PROTECTION
 # ============================================================
-
 def test_simulation_ownership_protection():
-
     token1 = get_auth_token(
         "simulation-owner@example.com"
     )
@@ -392,13 +422,10 @@ def test_simulation_ownership_protection():
         "to simulate this circuit"
     )
 
-
 # ============================================================
 # TEST 9 - RESULTS OWNERSHIP PROTECTION
 # ============================================================
-
 def test_results_ownership_protection():
-
     token1 = get_auth_token(
         "simulation-results-owner@example.com"
     )

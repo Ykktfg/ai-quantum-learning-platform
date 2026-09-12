@@ -25,6 +25,11 @@ Thumbs.db
 # Logs
 *.log
 
+quantum/.venv/
+
+backend.zip
+
+
 
 
 # Python virtual environment

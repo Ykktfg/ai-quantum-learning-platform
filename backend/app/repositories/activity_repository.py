@@ -19,6 +19,7 @@ class ActivityRepository:
         activity_type: str,
         course_id: int | None,
         description: str,
+        xp_earned: int = 0,
     ) -> Activity:
         """
         Create and save a learning activity.
@@ -29,6 +30,7 @@ class ActivityRepository:
             activity_type=activity_type,
             course_id=course_id,
             description=description,
+            xp_earned=xp_earned,
         )
 
         db.add(activity)
